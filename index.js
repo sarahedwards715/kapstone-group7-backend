@@ -1,5 +1,6 @@
 import express from "express";
 import mongoose from "mongoose";
+import cors from 'cors'
 import { User } from "./models/user.js";
 // const express = require("express");
 // const mongoose = require("mongoose");
@@ -12,12 +13,12 @@ const dbURI =
 
 mongoose
   .connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then(result =>
+  .then((result) =>
     app.listen(port, () => {
       console.log(`Example app listening at http://localhost:${port}`);
     })
   )
-  .catch(err => console.log(err));
+  .catch((err) => console.log(err));
 
 // mongoose.connection.once("open", () => {
 //   console.log("Mongodb connection established successfully");
@@ -25,7 +26,7 @@ mongoose
 
 const port = 4000;
 
-// app.use(cors());
+app.use(cors());
 app.use(express.json());
 
 app.get("/users", (req, res) => {});
@@ -36,10 +37,10 @@ app.post("/users", (req, res) => {
   });
   user
     .save()
-    .then(result => {
-      res.send(result);
+    .then((result) => {
+      res.status(201).send(result);
     })
-    .catch(err => {
+    .catch((err) => {
       console.log(err);
     });
 });
