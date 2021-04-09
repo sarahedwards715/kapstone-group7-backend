@@ -2,6 +2,7 @@ import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import { User } from "./models/user.js";
+import { Playlist } from "./models/playlist.js";
 // const express = require("express");
 // const mongoose = require("mongoose");
 // const User = require("./models/user.js");
@@ -31,12 +32,22 @@ const port = 4000;
 app.use(cors());
 app.use(express.json());
 
-// Define Routes
+// Define Routes //
+// User Routes //
 // Get All Users
-app.get("/users", (req, res) => {});
+app.get("/users", (req, res) => {
+  User.find({}).then((result) => {
+    res.status(200).json(result);
+  });
+});
 
 // Get Specific User
-app.get("/users/:id", (req, res) => {});
+app.get("/users/:id", (req, res) => {
+  const userId = req.body.id;
+  User.findById(userId).then((result) => {
+    res.status(200).json(result);
+  });
+});
 
 // Post a new User
 app.post("/users", (req, res) => {
@@ -52,7 +63,7 @@ app.post("/users", (req, res) => {
     res
       .status(400)
       .send(
-        "Let's Be Reasonable. Username may not be longer than 50 characters."
+        "Let's Be Reasonable. Display Name may not be longer than 50 characters."
       );
   } else {
     const user = new User({
@@ -75,6 +86,48 @@ app.post("/users", (req, res) => {
   }
 });
 
+// Playlist Routes //
+// Get All Playlists
+app.get("/playlists", (req, res) => {
+  Playlist.find({}).then((result) => {
+    res.status(200).json(result);
+  });
+});
+
+// Post a Playlist
+app.post("/playlists", (req, res) => {
+  if (!req.body || !req.body.title || !req.body.songs || !req.body.username) {
+    res.status(400).send("Proper Request Body Required!");
+  } else if (req.body.title.length < 3) {
+    res.status(400).send("Playlist Title must be at least 3 characters long!");
+  } else if (req.body.title.length > 100) {
+    res
+      .status(400)
+      .send("Playlist Title may not be longer than 100 characters.");
+  } else if (req.body.songs.length < 1) {
+    res.status(400).send("Playlists must contain at least one song!")
+  } else {
+    const playlist = new Playlist({
+      title: req.body.title,
+      songs: req.body.songs,
+      username: req.body.username,
+    });
+    playlist
+      .save()
+      .then((result) => {
+        res.status(201).json({
+          statusCode: res.statusCode,
+          newPlaylist: result,
+          message: "New Playlist Successfully Created!",
+          createdAt: result.createdAt,
+        });
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  }
+});
+
 // app.get("/", (req, res) => {
 //   User.find((err, User) => {
 //     if (err) {
@@ -86,5 +139,5 @@ app.post("/users", (req, res) => {
 // });
 
 app.get("/", (req, res) => {
-  res.send("Hello World!");
+  res.send("Hello From Kapstone Backend!");
 });
