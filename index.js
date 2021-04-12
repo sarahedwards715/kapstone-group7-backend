@@ -43,7 +43,7 @@ app.get("/users", (req, res) => {
 
 // Get Specific User
 app.get("/users/:id", (req, res) => {
-  const userId = req.body.id;
+  const userId = req.params.id;
   User.findById(userId).then((result) => {
     res.status(200).json(result);
   });
