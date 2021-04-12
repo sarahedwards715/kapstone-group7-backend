@@ -111,6 +111,7 @@ app.post("/playlists", (req, res) => {
       title: req.body.title,
       songs: req.body.songs,
       username: req.body.username,
+      description: req.body.description || ""
     });
     playlist
       .save()
