@@ -43,3 +43,9 @@ username: " ",
 stars: 1-5,
 createdAt:
 }
+
+const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: "24h"
+    });
+
+Where process.env.JWT_SECRET comes from the .env file
