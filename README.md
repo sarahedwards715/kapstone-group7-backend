@@ -49,3 +49,17 @@ const token = jwt.sign(payload, process.env.JWT_SECRET, {
     });
 
 Where process.env.JWT_SECRET comes from the .env file
+
+Authors: Sarah Edwards, Brian Ward, Nicholas Dudash
+
+Tools and Libraries:
+  MongoDB - Cloud Database, Compass and Atlas - https://www.mongodb.com/
+  Express Validation Library and Documentation - https://www.npmjs.com/package/express-validation
+  Joi Library and Documentation - https://joi.dev/api/?v=17.4.0#general-usage
+  Mongoose Library and Documentation - https://mongoosejs.com/
+  bcrypt Libarary and Documentation - https://www.npmjs.com/package/bcrypt
+
+References:
+  Web Dev Simplified - Build A REST API With Node.js, Express, & MongoDB - Quick - https://www.youtube.com/watch?v=fgTGADljAeg
+  Web Dev Simplified - Build Node.js User Authentication -https://www.youtube.com/watch?v=Ud5xKCYQTjM
+  Wisdom Ekpot - Building a password hasher in Node.js  - https://blog.logrocket.com/building-a-password-hasher-in-node-js/
