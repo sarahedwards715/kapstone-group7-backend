@@ -3,23 +3,40 @@ import mongoose from "mongoose";
 import cors from "cors";
 import { User } from "./models/user.js";
 import { Playlist } from "./models/playlist.js";
-// const express = require("express");
-// const mongoose = require("mongoose");
-// const User = require("./models/user.js");
-// const cors = require("cors");
+import jwt from "jsonwebtoken";
 const app = express();
+import {} from "dotenv/config.js";
 
-const dbURI =
-  "mongodb+srv://Admin:Kapstone7@kapstone.ogucm.mongodb.net/moodify?retryWrites=true&w=majority";
+const dbURI = process.env.DATABASE_KEY;
+
+const secret = process.env.SECRET;
 
 mongoose
-  .connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true })
-  .then((result) =>
+  .connect(dbURI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    useCreateIndex: true,
+  })
+  .then(result =>
     app.listen(port, () => {
       console.log(`Kapstone Backend listening at http://localhost:${port}`);
     })
   )
-  .catch((err) => console.log(err));
+  .catch(err => console.log(err));
+
+function checkAuth(req, res, next) {
+  try {
+    const token = req.headers.authorization?.slice(7) || "";
+    var decoded = jwt.verify(token, secret);
+    if (decoded) {
+      next();
+    } else {
+      res.sendStatus(401);
+    }
+  } catch (err) {
+    res.status(401).send(err.message);
+  }
+}
 
 // mongoose.connection.once("open", () => {
 //   console.log("Mongodb connection established successfully");
@@ -36,17 +53,37 @@ app.use(express.json());
 // User Routes //
 // Get All Users
 app.get("/users", (req, res) => {
-  User.find({}).then((result) => {
+  User.find({}).then(result => {
     res.status(200).json(result);
   });
 });
 
 // Get Specific User
-app.get("/users/:id", (req, res) => {
+app.get("/users/:id", checkAuth, (req, res) => {
   const userId = req.params.id;
-  User.findById(userId).then((result) => {
+  User.findById(userId).then(result => {
     res.status(200).json(result);
   });
+});
+
+// user login/authentication
+
+app.post("/users/login", async (req, res) => {
+  const { username, password } = req.body;
+  const user = await User.findOne({ username }).exec();
+
+  if (!user) {
+    res.status(401);
+  }
+
+  if (user.password === password) {
+    const token = jwt.sign({ foo: "bar" }, secret);
+
+    const updatedUser = await User.updateOne({ username }, { token });
+    res.send(updatedUser);
+  }
+
+  res.status(401);
 });
 
 // Post a new User
@@ -66,30 +103,36 @@ app.post("/users", (req, res) => {
         "Let's Be Reasonable. Display Name may not be longer than 50 characters."
       );
   } else {
-    const user = new User({
-      username: req.body.username,
-      displayName: req.body.displayName,
-    });
-    user
-      .save()
-      .then((result) => {
-        res.status(201).json({
-          statusCode: res.statusCode,
-          newUser: result,
-          message: "New User Successfully Created!",
-          createdAt: result.createdAt,
-        });
+    User.init()
+      .then(async () => {
+        const user = new User(req.body);
+        const result = await user.save();
+        res.json(result);
       })
-      .catch((err) => {
-        console.log(err);
+      .catch(err => {
+        res.json(err.message);
       });
+    // const user = new User(req.body);
+    // user
+    //   .save()
+    //   .then(result => {
+    //     res.status(201).json({
+    //       statusCode: res.statusCode,
+    //       newUser: result,
+    //       message: "New User Successfully Created!",
+    //       createdAt: result.createdAt,
+    //     });
+    //   })
+    //   .catch(err => {
+    //     console.log(err);
+    //   });
   }
 });
 
 // Playlist Routes //
 // Get All Playlists
 app.get("/playlists", (req, res) => {
-  Playlist.find({}).then((result) => {
+  Playlist.find({}).then(result => {
     res.status(200).json(result);
   });
 });
@@ -105,17 +148,17 @@ app.post("/playlists", (req, res) => {
       .status(400)
       .send("Playlist Title may not be longer than 100 characters.");
   } else if (req.body.songs.length < 1) {
-    res.status(400).send("Playlists must contain at least one song!")
+    res.status(400).send("Playlists must contain at least one song!");
   } else {
     const playlist = new Playlist({
       title: req.body.title,
       songs: req.body.songs,
       username: req.body.username,
-      description: req.body.description || ""
+      description: req.body.description || "",
     });
     playlist
       .save()
-      .then((result) => {
+      .then(result => {
         res.status(201).json({
           statusCode: res.statusCode,
           newPlaylist: result,
@@ -123,7 +166,7 @@ app.post("/playlists", (req, res) => {
           createdAt: result.createdAt,
         });
       })
-      .catch((err) => {
+      .catch(err => {
         console.log(err);
       });
   }
