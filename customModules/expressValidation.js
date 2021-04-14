@@ -82,6 +82,8 @@ export const playlistValidation = {
             .max(30)
             .required(),
         description: Joi.string()
+            .allow('')
+            .optional()
             .min(3)
             .max(30)
     })
