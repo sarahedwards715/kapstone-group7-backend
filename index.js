@@ -9,19 +9,40 @@ import {
   registerValidation,
 } from "./valdationInfo/validation.js";
 
+import jwt from "jsonwebtoken";
 const app = express();
+import {} from "dotenv/config.js";
 
-const dbURI =
-  "mongodb+srv://Admin:Kapstone7@kapstone.ogucm.mongodb.net/moodify?retryWrites=true&w=majority";
+const dbURI = process.env.DATABASE_KEY;
+
+const secret = process.env.SECRET;
 
 mongoose
-  .connect(dbURI, { useNewUrlParser: true, useUnifiedTopology: true })
+  .connect(dbURI, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    useCreateIndex: true,
+  })
   .then((result) =>
     app.listen(port, () => {
       console.log(`Kapstone Backend listening at http://localhost:${port}`);
     })
   )
   .catch((err) => console.log(err));
+
+function checkAuth(req, res, next) {
+  try {
+    const token = req.headers.authorization?.slice(7) || "";
+    var decoded = jwt.verify(token, secret);
+    if (decoded) {
+      next();
+    } else {
+      res.sendStatus(401);
+    }
+  } catch (err) {
+    res.status(401).send(err.message);
+  }
+}
 
 //Logger
 const logger = (func) => {
@@ -60,11 +81,31 @@ app.get("/users", (req, res) => {
 });
 
 // Get Specific User
-app.get("/users/:id", (req, res) => {
+app.get("/users/:id", checkAuth, (req, res) => {
   const userId = req.params.id;
   User.findById(userId).then((result) => {
     res.status(200).json(result);
   });
+});
+
+// user login/authentication
+
+app.post("/users/login", async (req, res) => {
+  const { username, password } = req.body;
+  const user = await User.findOne({ username }).exec();
+
+  if (!user) {
+    res.status(401);
+  }
+
+  if (user.password === password) {
+    const token = jwt.sign({ foo: "bar" }, secret);
+
+    const updatedUser = await User.updateOne({ username }, { token });
+    res.send(updatedUser);
+  }
+
+  res.status(401);
 });
 
 // Post a new User
@@ -77,9 +118,9 @@ app.post("/users", validate(registerValidation), async (req, res) => {
       displayName: req.body.displayName,
       password: hashedPassword,
     });
-    user
-      .save()
-      .then((result) => {
+    User.init()
+      .then(async () => {
+        const result = await user.save();
         res.status(201).json({
           statusCode: res.statusCode,
           newUser: result,
@@ -88,7 +129,7 @@ app.post("/users", validate(registerValidation), async (req, res) => {
         });
       })
       .catch((err) => {
-        console.log(err);
+        res.json(err.message);
       });
   } catch (err) {
     console.log(err);
@@ -102,10 +143,9 @@ app.patch("/users", (req, res) => {
 });
 
 //Delete User
-app.delete("/users/:id", (req,res) => {
+app.delete("/users/:id", (req, res) => {
   res.status.json("Hit Delete users/:id Endpoint");
-
-})
+});
 
 ////////// User Auth Routes ///////////
 // I think Brian might be handling this stuff.
@@ -164,8 +204,7 @@ app.post("/playlists", validate(playlistValidation), (req, res) => {
 //TODO Implement Token Based Authorization
 app.patch("/playlists/:id", (req, res) => {
   res.status(200).json("Hit patch /playlists/:id endpoint");
-
-})
+});
 
 //Home Route
 app.get("/", (req, res) => {
