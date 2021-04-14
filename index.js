@@ -1,59 +1,49 @@
 import express from "express";
 import mongoose from "mongoose";
-import cors from "cors";
+import bcrypt from "bcrypt";
 import { User } from "./models/user.js";
 import { Playlist } from "./models/playlist.js";
+import { validate, ValidationError } from "express-validation";
+import {
+  playlistValidation,
+  registerValidation,
+  loginValidation,
+} from "./customModules/expressValidation.js";
 import jwt from "jsonwebtoken";
-const app = express();
 import {} from "dotenv/config.js";
+import { corsHandler, checkAuth } from "./customModules/customMiddleware.js";
 
+const app = express();
 const dbURI = process.env.DATABASE_KEY;
-
 const secret = process.env.SECRET;
+
+// Define Port (Eventually replace with Glitch deploy?)
+const port = 4000;
 
 mongoose
   .connect(dbURI, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
     useCreateIndex: true,
+    useFindAndModify: false,
   })
-  .then(result =>
+  .then((result) =>
     app.listen(port, () => {
       console.log(`Kapstone Backend listening at http://localhost:${port}`);
     })
   )
-  .catch(err => console.log(err));
+  .catch((err) => console.log(err));
 
-function checkAuth(req, res, next) {
-  try {
-    const token = req.headers.authorization?.slice(7) || "";
-    var decoded = jwt.verify(token, secret);
-    if (decoded) {
-      next();
-    } else {
-      res.sendStatus(401);
-    }
-  } catch (err) {
-    res.status(401).send(err.message);
-  }
-}
-
-// mongoose.connection.once("open", () => {
-//   console.log("Mongodb connection established successfully");
-// });
-
-// Define Port (Eventually replace with Glitch deploy?)
-const port = 4000;
-
-// Define Middleware
-app.use(cors());
+// Define Global Middleware
 app.use(express.json());
+app.use(corsHandler);
 
-// Define Routes //
-// User Routes //
+////////////////////// Define Routes //////////////////////
+
+////////// User Routes ////////////
 // Get All Users
 app.get("/users", (req, res) => {
-  User.find({}).then(result => {
+  User.find({}).then((result) => {
     res.status(200).json(result);
   });
 });
@@ -61,127 +51,154 @@ app.get("/users", (req, res) => {
 // Get Specific User
 app.get("/users/:id", checkAuth, (req, res) => {
   const userId = req.params.id;
-  User.findById(userId).then(result => {
+  User.findById(userId).then((result) => {
     res.status(200).json(result);
   });
 });
 
-// user login/authentication
+// Post a new User
+app.post("/users", validate(registerValidation), async (req, res) => {
+  try {
+    const hashedPassword = await bcrypt.hash(req.body.password, 12);
 
-app.post("/users/login", async (req, res) => {
+    const user = new User({
+      username: req.body.username,
+      displayName: req.body.displayName,
+      password: hashedPassword,
+    });
+    User.init()
+      .then(async () => {
+        const result = await user.save();
+        res.status(201).json({
+          statusCode: res.statusCode,
+          newUser: result,
+          message: "New User Successfully Created!",
+          createdAt: result.createdAt,
+        });
+      })
+      .catch((err) => {
+        res.json(err.message);
+      });
+  } catch (err) {
+    console.log(err);
+  }
+});
+
+//Patch User Information (a.k.a Update)
+//TODO Implement Token Based Authorization
+app.patch("/users", (req, res) => {
+  res.status.json("Hit Update User Endpoint");
+});
+
+//Delete User
+app.delete("/users/:id", (req, res) => {
+  res.status.json("Hit Delete users/:id Endpoint");
+});
+
+////////// User Auth Routes ///////////
+//Login User
+app.post("/users/login", validate(loginValidation), async (req, res) => {
   const { username, password } = req.body;
   const user = await User.findOne({ username }).exec();
 
   if (!user) {
-    res.status(401);
+    res.status(404).json({
+      statusCode: res.statusCode,
+      message: "User Not Found!",
+    });
   }
 
-  if (user.password === password) {
-    const token = jwt.sign({ foo: "bar" }, secret);
+  bcrypt.compare(password, user.password, async function (err, result) {
+    if (result) {
+      const token = jwt.sign({ foo: "bar" }, secret);
 
-    const updatedUser = await User.updateOne({ username }, { token });
-    res.send(updatedUser);
-  }
-
-  res.status(401);
-});
-
-// Post a new User
-app.post("/users", (req, res) => {
-  if (!req.body || !req.body.username || !req.body.displayName) {
-    res.status(400).send("Proper Request Body Required!");
-  } else if (req.body.username.length < 0) {
-    res.status(400).send("Username must be at least 3 characters long!");
-  } else if (req.body.username.length > 30) {
-    res.status(400).send("Username may not be longer than 30 characters.");
-  } else if (req.body.displayName.length < 3) {
-    res.status(400).send("Display Name must be at least 3 characters long!");
-  } else if (req.body.displayName.length > 50) {
-    res
-      .status(400)
-      .send(
-        "Let's Be Reasonable. Display Name may not be longer than 50 characters."
+      const updatedUser = await User.findOneAndUpdate(
+        { username: user.username },
+        { token: token },
+        { new: true }
       );
-  } else {
-    User.init()
-      .then(async () => {
-        const user = new User(req.body);
-        const result = await user.save();
-        res.json(result);
-      })
-      .catch(err => {
-        res.json(err.message);
+
+      res.status(200).json({
+        statusCode: res.statusCode,
+        userInfo: {
+          username: updatedUser.username,
+          displayName: updatedUser.displayName,
+        },
+        moodifyToken: updatedUser.token,
+        message: "User Successfully Logged In!",
       });
-    // const user = new User(req.body);
-    // user
-    //   .save()
-    //   .then(result => {
-    //     res.status(201).json({
-    //       statusCode: res.statusCode,
-    //       newUser: result,
-    //       message: "New User Successfully Created!",
-    //       createdAt: result.createdAt,
-    //     });
-    //   })
-    //   .catch(err => {
-    //     console.log(err);
-    //   });
-  }
+    } else {
+      res.status(400).json({
+        statusCode: res.statusCode,
+        message: "Incorrect Password!",
+      });
+    }
+  });
 });
 
-// Playlist Routes //
+//Logout User (Delete Auth Token from User Document)
+//TODO Implement Token Based Authorization (Maybe??)
+app.get("/users/logout", (req, res) => {
+  res.status(200).json("Hit /users/logout endpoint");
+});
+
+/////////// Playlist Routes ////////////
 // Get All Playlists
 app.get("/playlists", (req, res) => {
-  Playlist.find({}).then(result => {
+  Playlist.find({}).then((result) => {
+    res.status(200).json(result);
+  });
+});
+
+//Get Specified Playlist (Might be unnecessary)
+app.get("/playlists/:id", (req, res) => {
+  const playlistId = req.params.id;
+  User.findById(playlistId).then((result) => {
     res.status(200).json(result);
   });
 });
 
 // Post a Playlist
-app.post("/playlists", (req, res) => {
-  if (!req.body || !req.body.title || !req.body.songs || !req.body.username) {
-    res.status(400).send("Proper Request Body Required!");
-  } else if (req.body.title.length < 3) {
-    res.status(400).send("Playlist Title must be at least 3 characters long!");
-  } else if (req.body.title.length > 100) {
-    res
-      .status(400)
-      .send("Playlist Title may not be longer than 100 characters.");
-  } else if (req.body.songs.length < 1) {
-    res.status(400).send("Playlists must contain at least one song!");
-  } else {
-    const playlist = new Playlist({
-      title: req.body.title,
-      songs: req.body.songs,
-      username: req.body.username,
-      description: req.body.description || "",
-    });
-    playlist
-      .save()
-      .then(result => {
-        res.status(201).json({
-          statusCode: res.statusCode,
-          newPlaylist: result,
-          message: "New Playlist Successfully Created!",
-          createdAt: result.createdAt,
-        });
-      })
-      .catch(err => {
-        console.log(err);
+//TODO Implement Token Based Authorization
+app.post("/playlists", validate(playlistValidation), (req, res) => {
+  const playlist = new Playlist({
+    title: req.body.title,
+    songs: req.body.songs,
+    username: req.body.username,
+    description: req.body.description || "",
+  });
+  playlist
+    .save()
+    .then((result) => {
+      res.status(201).json({
+        statusCode: res.statusCode,
+        newPlaylist: result,
+        message: "New Playlist Successfully Created!",
+        createdAt: result.createdAt,
       });
-  }
+    })
+    .catch((err) => {
+      console.log(err);
+    });
 });
 
-// app.get("/", (req, res) => {
-//   User.find((err, User) => {
-//     if (err) {
-//       console.log(err);
-//     } else {
-//       res.json(User);
-//     }
-//   });
-// });
+//Update a Playlist
+//TODO Implement Token Based Authorization
+app.patch("/playlists/:id", (req, res) => {
+  res.status(200).json("Hit patch /playlists/:id endpoint");
+});
 
+//Home Route
 app.get("/", (req, res) => {
   res.send("Hello From Kapstone Backend!");
+});
+
+// Custom Error Handler using the express-validation library's ValidationError Class
+// Make sure this is last!
+app.use(function (err, req, res, next) {
+  if (err instanceof ValidationError) {
+    return res.status(err.statusCode).json(err);
+  }
+
+  return res.status(500).json(err);
 });
