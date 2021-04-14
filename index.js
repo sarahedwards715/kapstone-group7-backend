@@ -7,15 +7,18 @@ import { validate, ValidationError } from "express-validation";
 import {
   playlistValidation,
   registerValidation,
-} from "./valdationInfo/validation.js";
-
+  loginValidation,
+} from "./customModules/expressValidation.js";
 import jwt from "jsonwebtoken";
-const app = express();
 import {} from "dotenv/config.js";
+import { corsHandler, checkAuth } from "./customModules/customMiddleware.js";
 
+const app = express();
 const dbURI = process.env.DATABASE_KEY;
-
 const secret = process.env.SECRET;
+
+// Define Port (Eventually replace with Glitch deploy?)
+const port = 4000;
 
 mongoose
   .connect(dbURI, {
@@ -30,45 +33,9 @@ mongoose
   )
   .catch((err) => console.log(err));
 
-function checkAuth(req, res, next) {
-  try {
-    const token = req.headers.authorization?.slice(7) || "";
-    var decoded = jwt.verify(token, secret);
-    if (decoded) {
-      next();
-    } else {
-      res.sendStatus(401);
-    }
-  } catch (err) {
-    res.status(401).send(err.message);
-  }
-}
-
-//Logger
-const logger = (func) => {
-  console.log(func);
-};
-
-// Define Port (Eventually replace with Glitch deploy?)
-const port = 4000;
-
 // Define Global Middleware
 app.use(express.json());
-//CITATION: Thanks to Pete Mayor from the Q2 Demo code for this cors-handling code.
-app.use(function (req, res, next) {
-  // Website you wish to allow to connect
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept"
-  );
-  res.header(
-    "Access-Control-Allow-Methods",
-    "GET, POST, OPTIONS, PUT, PATCH, DELETE"
-  );
-
-  next();
-});
+app.use(corsHandler);
 
 ////////////////////// Define Routes //////////////////////
 
@@ -86,26 +53,6 @@ app.get("/users/:id", checkAuth, (req, res) => {
   User.findById(userId).then((result) => {
     res.status(200).json(result);
   });
-});
-
-// user login/authentication
-
-app.post("/users/login", async (req, res) => {
-  const { username, password } = req.body;
-  const user = await User.findOne({ username }).exec();
-
-  if (!user) {
-    res.status(401);
-  }
-
-  if (user.password === password) {
-    const token = jwt.sign({ foo: "bar" }, secret);
-
-    const updatedUser = await User.updateOne({ username }, { token });
-    res.send(updatedUser);
-  }
-
-  res.status(401);
 });
 
 // Post a new User
@@ -148,10 +95,44 @@ app.delete("/users/:id", (req, res) => {
 });
 
 ////////// User Auth Routes ///////////
-// I think Brian might be handling this stuff.
-//Login User (Generate and Return Token, and put that token in user's document)
-app.post("/users/login", (req, res) => {
-  res.status(200).json("Hit /users/login endpoint");
+//Login User
+app.post("/users/login", validate(loginValidation), async (req, res) => {
+  const { username, password } = req.body;
+  const user = await User.findOne({ username }).exec();
+
+  if (!user) {
+    res.status(404).json({
+      statusCode: res.statusCode,
+      message: "User Not Found!",
+    });
+  }
+
+  bcrypt.compare(password, user.password, async function (err, result) {
+    if (result) {
+      const token = jwt.sign({ foo: "bar" }, secret);
+
+      const updatedUser = await User.findOneAndUpdate(
+        { username: user.username },
+        { token: token },
+        { new: true }
+      );
+
+      res.status(200).json({
+        statusCode: res.statusCode,
+        userInfo: {
+          username: updatedUser.username,
+          displayName: updatedUser.displayName,
+        },
+        moodifyToken: updatedUser.token,
+        message: "User Successfully Logged In!",
+      });
+    } else {
+      res.status(400).json({
+        statusCode: res.statusCode,
+        message: "Incorrect Password!",
+      });
+    }
+  });
 });
 
 //Logout User (Delete Auth Token from User Document)

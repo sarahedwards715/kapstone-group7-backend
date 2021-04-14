@@ -31,12 +31,10 @@ export const registerValidation = {
             .required(),
         //TODO Implement Passwords 
         password: Joi.string()
-        .pattern(/^\S+$/)
-        .min(3)
-        .max(30)
-        .required(),
-        confirmPassword: Joi.ref('password')
-
+            .pattern(/^\S+$/)
+            .min(3)
+            .max(30)
+            .required(),
     })
 }
 
@@ -44,6 +42,11 @@ export const loginValidation = {
     body: Joi.object({
         username: Joi.string()
             .alphanum()
+            .min(3)
+            .max(30)
+            .required(),
+        password: Joi.string()
+            .pattern(/^\S+$/)
             .min(3)
             .max(30)
             .required(),
@@ -56,7 +59,6 @@ export const updateUserValidation = {
     //     Authorization: Joi.string()
     //       .required()
     // }),
-    body: Joi.object
 }
 
 export const playlistValidation = {
