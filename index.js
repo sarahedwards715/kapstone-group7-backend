@@ -153,14 +153,14 @@ app.get("/playlists", (req, res) => {
 //Get Specified Playlist (Might be unnecessary)
 app.get("/playlists/:id", (req, res) => {
   const playlistId = req.params.id;
-  User.findById(playlistId).then((result) => {
+  Playlist.findById(playlistId).then((result) => {
     res.status(200).json(result);
   });
 });
 
 // Post a Playlist
 //TODO Implement Token Based Authorization
-app.post("/playlists", validate(playlistValidation), (req, res) => {
+app.post("/playlists", checkAuth, validate(playlistValidation), (req, res) => {
   const playlist = new Playlist({
     title: req.body.title,
     songs: req.body.songs,
