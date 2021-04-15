@@ -8,6 +8,7 @@ import {
   playlistValidation,
   registerValidation,
   loginValidation,
+  mongoIdValidation,
 } from "./customModules/expressValidation.js";
 import jwt from "jsonwebtoken";
 import {} from "dotenv/config.js";
@@ -43,17 +44,27 @@ app.use(corsHandler);
 ////////// User Routes ////////////
 // Get All Users
 app.get("/users", (req, res) => {
-  User.find({}).then((result) => {
-    res.status(200).json(result);
-  });
+  User.find({})
+    .then((result) => {
+      res.status(200).json(result);
+    })
+    .catch((err) => console.log(err));
 });
 
 // Get Specific User
-app.get("/users/:id", checkAuth, (req, res) => {
-  const userId = req.params.id;
-  User.findById(userId).then((result) => {
-    res.status(200).json(result);
-  });
+app.get("/users/:id", validate(mongoIdValidation), async (req, res) => {
+  await User.findById(req.params.id)
+    .exec()
+    .then((result) => {
+      console.log(result);
+      result
+        ? res.status(200).json(result)
+        : res.status(404).json({
+            statusCode: res.statusCode,
+            message: "User Does Not Exist!",
+          });
+    })
+    .catch((err) => console.log(err));
 });
 
 // Post a new User
@@ -91,7 +102,7 @@ app.patch("/users", (req, res) => {
 });
 
 //Delete User
-app.delete("/users/:id", (req, res) => {
+app.delete("/users/:id", validate(mongoIdValidation), (req, res) => {
   res.status.json("Hit Delete users/:id Endpoint");
 });
 
@@ -108,32 +119,36 @@ app.post("/users/login", validate(loginValidation), async (req, res) => {
     });
   }
 
-  bcrypt.compare(password, user.password, async function (err, result) {
-    if (result) {
-      const token = jwt.sign({ foo: "bar" }, secret);
+  if (user) {
+    bcrypt.compare(password, user.password, async function (err, result) {
+      if (result) {
+        const token = jwt.sign({ payload: user.username }, secret, {
+          expiresIn: "2h",
+        });
 
-      const updatedUser = await User.findOneAndUpdate(
-        { username: user.username },
-        { token: token },
-        { new: true }
-      );
+        const updatedUser = await User.findOneAndUpdate(
+          { username: user.username },
+          { token: token },
+          { new: true }
+        );
 
-      res.status(200).json({
-        statusCode: res.statusCode,
-        userInfo: {
-          username: updatedUser.username,
-          displayName: updatedUser.displayName,
-        },
-        moodifyToken: updatedUser.token,
-        message: "User Successfully Logged In!",
-      });
-    } else {
-      res.status(400).json({
-        statusCode: res.statusCode,
-        message: "Incorrect Password!",
-      });
-    }
-  });
+        res.status(200).json({
+          statusCode: res.statusCode,
+          userInfo: {
+            username: updatedUser.username,
+            displayName: updatedUser.displayName,
+          },
+          moodifyToken: updatedUser.token,
+          message: "User Successfully Logged In!",
+        });
+      } else {
+        res.status(400).json({
+          statusCode: res.statusCode,
+          message: "Incorrect Password!",
+        });
+      }
+    });
+  }
 });
 
 //Logout User (Delete Auth Token from User Document)
@@ -150,16 +165,23 @@ app.get("/playlists", (req, res) => {
   });
 });
 
-//Get Specified Playlist (Might be unnecessary)
-app.get("/playlists/:id", (req, res) => {
-  const playlistId = req.params.id;
-  Playlist.findById(playlistId).then((result) => {
-    res.status(200).json(result);
-  });
+//Get Specified Playlist
+app.get("/playlists/:id", validate(mongoIdValidation), (req, res) => {
+  Playlist.findById(req.params.id)
+    .then((result) => {
+      result
+        ? res.status(200).json(result)
+        : res.status(404).json({
+            statusCode: res.statusCode,
+            message: "Playlist Does Not Exist!",
+          });
+    })
+    .catch((err) => {
+      res.json(err.message);
+    });
 });
 
 // Post a Playlist
-//TODO Implement Token Based Authorization
 app.post("/playlists", checkAuth, validate(playlistValidation), (req, res) => {
   const playlist = new Playlist({
     title: req.body.title,
@@ -183,9 +205,29 @@ app.post("/playlists", checkAuth, validate(playlistValidation), (req, res) => {
 });
 
 //Update a Playlist
-//TODO Implement Token Based Authorization
-app.patch("/playlists/:id", (req, res) => {
+app.patch("/playlists/:id", checkAuth, (req, res) => {
   res.status(200).json("Hit patch /playlists/:id endpoint");
+});
+
+//Delete a Playlist
+app.delete("/playlists/:id", checkAuth, async (req, res) => {
+  const targetPlaylist = await Playlist.findByIdAndRemove(req.params.id);
+
+  if (!targetPlaylist) {
+    res.status(404).json({
+      statusCode: res.statusCode,
+      message: "Playlist does not exist!",
+    });
+  }
+
+  if(targetPlaylist) {
+    res.status(200).json({
+      statusCode: res.statusCode,
+      message: "Playlist Successfully Deleted",
+      deletedPlaylistName: targetPlaylist.title,
+      deletedPlaylistRaw: targetPlaylist,
+    })
+  }
 });
 
 //Home Route

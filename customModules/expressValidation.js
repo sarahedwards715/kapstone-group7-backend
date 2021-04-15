@@ -17,6 +17,13 @@ import { Joi } from "express-validation";
 //         Joi.number()
 //     ]
 // })
+export const mongoIdValidation = {
+    params: Joi.object({
+        id: Joi.string()
+            .required()
+            .length(24)
+    })
+}
 
 export const registerValidation = {
     body: Joi.object({
@@ -29,7 +36,6 @@ export const registerValidation = {
             .min(3)
             .max(30)
             .required(),
-        //TODO Implement Passwords 
         password: Joi.string()
             .pattern(/^\S+$/)
             .min(3)
@@ -54,19 +60,9 @@ export const loginValidation = {
 }
 
 export const updateUserValidation = {
-    //TODO Implement Token Based Authorization
-    // headers: Joi.object({
-    //     Authorization: Joi.string()
-    //       .required()
-    // }),
 }
 
 export const playlistValidation = {
-    //TODO Implement Token Based Authorization
-    // headers: Joi.object({
-    //     Authorization: Joi.string()
-    //       .required()
-    // }),
     body: Joi.object({
         title: Joi.string()
             .min(3)
@@ -87,5 +83,27 @@ export const playlistValidation = {
             .min(3)
             .max(30)
     })
+}
 
+export const patchPlaylistValidation = {
+    body: Joi.object({
+        title: Joi.string()
+            .min(3)
+            .max(50)
+            .optional(),
+        songs: Joi.array()
+            .items(Joi.object())
+            .min(1)
+            .optional(),
+        username: Joi.string()
+            .alphanum()
+            .min(3)
+            .max(30)
+            .optional(),
+        description: Joi.string()
+            .allow('')
+            .optional()
+            .min(3)
+            .max(30)
+    })
 }

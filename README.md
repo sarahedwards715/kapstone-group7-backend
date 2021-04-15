@@ -63,3 +63,4 @@ References:
   Web Dev Simplified - Build A REST API With Node.js, Express, & MongoDB - Quick - https://www.youtube.com/watch?v=fgTGADljAeg
   Web Dev Simplified - Build Node.js User Authentication -https://www.youtube.com/watch?v=Ud5xKCYQTjM
   Wisdom Ekpot - Building a password hasher in Node.js  - https://blog.logrocket.com/building-a-password-hasher-in-node-js/
+  Zell Liew - Mongoose Sub Document Implementation -https://www.freecodecamp.org/news/mongoose101/
