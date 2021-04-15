@@ -94,6 +94,11 @@ app.get("/playlists", (req, res) => {
   });
 });
 
+app.post("/playlists/:playlistId", (req, res) => {
+  res.send(req.params.playlistId);
+  
+});
+
 // Post a Playlist
 app.post("/playlists", (req, res) => {
   if (!req.body || !req.body.title || !req.body.songs || !req.body.username) {
@@ -107,12 +112,7 @@ app.post("/playlists", (req, res) => {
   } else if (req.body.songs.length < 1) {
     res.status(400).send("Playlists must contain at least one song!")
   } else {
-    const playlist = new Playlist({
-      title: req.body.title,
-      songs: req.body.songs,
-      username: req.body.username,
-      description: req.body.description || ""
-    });
+    const playlist = new Playlist({...req.body});
     playlist
       .save()
       .then((result) => {
