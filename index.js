@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import { User } from "./models/user.js";
 import { Playlist } from "./models/playlist.js";
+import { Review } from "./models/review.js"
 import { validate, ValidationError } from "express-validation";
 import {
   playlistValidation,
@@ -10,7 +11,7 @@ import {
   loginValidation,
 } from "./customModules/expressValidation.js";
 import jwt from "jsonwebtoken";
-import {} from "dotenv/config.js";
+import { } from "dotenv/config.js";
 import { corsHandler, checkAuth } from "./customModules/customMiddleware.js";
 
 const app = express();
@@ -189,8 +190,32 @@ app.patch("/playlists/:id", (req, res) => {
 });
 
 ////////////Review Routes////////////
-app.post("/reviews", (req, res) => {
-  res.status(200).json("Hello")
+app.post("/reviews", async (req, res) => {
+  console.log(req.body.playlist_id)
+  const targetPlaylist = await Playlist.findById(req.body.playlist_id)
+
+  console.log(targetPlaylist)
+  const review = new Review({
+    playlistId: req.body.playlist_id,
+    description: req.body.description,
+    thumbsUp: req.body.thumbsUp,
+    thumbsDown: req.body.thumbsDown
+  });
+  console.log(review)
+})
+
+// Reviews Patch
+
+app.patch("/reviews/:id", (req, res) => {
+  res.status(200).json("Hello from patch")
+})
+
+
+
+// Reviews Delete
+
+app.delete("/reviews/:id", (req, res) => {
+  res.status(200).json("Hello from delete")
 })
 
 //Home Route
