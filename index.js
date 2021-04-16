@@ -191,18 +191,29 @@ app.patch("/playlists/:id", (req, res) => {
 
 ////////////Review Routes////////////
 app.post("/reviews", async (req, res) => {
-  console.log(req.body.playlist_id)
-  const targetPlaylist = await Playlist.findById(req.body.playlist_id)
+  console.log(req.body)
+  const targetPlaylist = await Playlist.findById(req.body.playlist_id).exec()
+
 
   console.log(targetPlaylist)
   const review = new Review({
-    playlistId: req.body.playlist_id,
+    playlist_id: req.body.playlist_id,
+    review_username: req.body.username,
     description: req.body.description,
     thumbsUp: req.body.thumbsUp,
     thumbsDown: req.body.thumbsDown
   });
-  console.log(review)
+  // console.log(review)
+
+targetPlaylist.reviews.push(review)
+
+const updated = await targetPlaylist.save()
+res.status(201).json(updated) 
+
 })
+
+
+
 
 // Reviews Patch
 
