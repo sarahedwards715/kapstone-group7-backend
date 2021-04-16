@@ -27,12 +27,12 @@ mongoose
     useCreateIndex: true,
     useFindAndModify: false,
   })
-  .then((result) =>
+  .then(result =>
     app.listen(port, () => {
       console.log(`Kapstone Backend listening at http://localhost:${port}`);
     })
   )
-  .catch((err) => console.log(err));
+  .catch(err => console.log(err));
 
 // Define Global Middleware
 app.use(express.json());
@@ -43,7 +43,7 @@ app.use(corsHandler);
 ////////// User Routes ////////////
 // Get All Users
 app.get("/users", (req, res) => {
-  User.find({}).then((result) => {
+  User.find({}).then(result => {
     res.status(200).json(result);
   });
 });
@@ -51,7 +51,7 @@ app.get("/users", (req, res) => {
 // Get Specific User
 app.get("/users/:id", checkAuth, (req, res) => {
   const userId = req.params.id;
-  User.findById(userId).then((result) => {
+  User.findById(userId).then(result => {
     res.status(200).json(result);
   });
 });
@@ -76,7 +76,7 @@ app.post("/users", validate(registerValidation), async (req, res) => {
           createdAt: result.createdAt,
         });
       })
-      .catch((err) => {
+      .catch(err => {
         res.json(err.message);
       });
   } catch (err) {
@@ -145,7 +145,7 @@ app.get("/users/logout", (req, res) => {
 /////////// Playlist Routes ////////////
 // Get All Playlists
 app.get("/playlists", (req, res) => {
-  Playlist.find({}).then((result) => {
+  Playlist.find({}).then(result => {
     res.status(200).json(result);
   });
 });
@@ -153,7 +153,7 @@ app.get("/playlists", (req, res) => {
 //Get Specified Playlist (Might be unnecessary)
 app.get("/playlists/:id", (req, res) => {
   const playlistId = req.params.id;
-  User.findById(playlistId).then((result) => {
+  Playlist.findById(playlistId).then(result => {
     res.status(200).json(result);
   });
 });
@@ -169,7 +169,7 @@ app.post("/playlists", validate(playlistValidation), (req, res) => {
   });
   playlist
     .save()
-    .then((result) => {
+    .then(result => {
       res.status(201).json({
         statusCode: res.statusCode,
         newPlaylist: result,
@@ -177,7 +177,7 @@ app.post("/playlists", validate(playlistValidation), (req, res) => {
         createdAt: result.createdAt,
       });
     })
-    .catch((err) => {
+    .catch(err => {
       console.log(err);
     });
 });
