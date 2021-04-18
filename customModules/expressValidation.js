@@ -81,7 +81,7 @@ export const playlistValidation = {
             .allow('')
             .optional()
             .min(3)
-            .max(30)
+            .max(80)
     })
 }
 
@@ -104,6 +104,6 @@ export const patchPlaylistValidation = {
             .allow('')
             .optional()
             .min(3)
-            .max(30)
+            .max(80)
     })
 }

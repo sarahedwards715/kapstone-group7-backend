@@ -9,6 +9,7 @@ import {
   registerValidation,
   loginValidation,
   mongoIdValidation,
+  patchPlaylistValidation,
 } from "./customModules/expressValidation.js";
 import jwt from "jsonwebtoken";
 import {} from "dotenv/config.js";
@@ -56,7 +57,6 @@ app.get("/users/:id", validate(mongoIdValidation), async (req, res) => {
   await User.findById(req.params.id)
     .exec()
     .then((result) => {
-      console.log(result);
       result
         ? res.status(200).json(result)
         : res.status(404).json({
@@ -205,9 +205,31 @@ app.post("/playlists", checkAuth, validate(playlistValidation), (req, res) => {
 });
 
 //Update a Playlist
-app.patch("/playlists/:id", checkAuth, (req, res) => {
-  res.status(200).json("Hit patch /playlists/:id endpoint");
-});
+app.patch(
+  "/playlists/:playlist_id",
+  checkAuth,
+  validate(patchPlaylistValidation),
+  async (req, res) => {
+    console.log(req.params.playlist_id)
+    await Playlist.findByIdAndUpdate(req.params.playlist_id, req.body, { new: true })
+      .exec()
+      .then((result) => {
+        result
+          ? res.status(200).json({
+              statusCode: res.statusCode,
+              message: "Playlist Successfully Updated",
+              playlist: result,
+            })
+          : res.status(404).json({
+              statusCode: res.statusCode,
+              message: "User Does Not Exist!",
+            });
+      })
+      .catch((err) => {
+        console.log(err);
+      });
+  }
+);
 
 //Delete a Playlist
 app.delete("/playlists/:id", checkAuth, async (req, res) => {
@@ -220,13 +242,13 @@ app.delete("/playlists/:id", checkAuth, async (req, res) => {
     });
   }
 
-  if(targetPlaylist) {
+  if (targetPlaylist) {
     res.status(200).json({
       statusCode: res.statusCode,
       message: "Playlist Successfully Deleted",
       deletedPlaylistName: targetPlaylist.title,
       deletedPlaylistRaw: targetPlaylist,
-    })
+    });
   }
 });
 
