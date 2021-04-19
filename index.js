@@ -88,7 +88,15 @@ app.post("/users", validate(registerValidation), async (req, res) => {
         });
       })
       .catch((err) => {
-        res.json(err.message);
+        if (err.code === 11000) {
+          res.status(400).json({
+            message:
+              "This Username is Already Being Used!",
+            statusCode: res.statusCode,
+            databaseErrorCode: err.code,
+            raw: err,
+          });
+        }
       });
   } catch (err) {
     console.log(err);
@@ -210,8 +218,10 @@ app.patch(
   checkAuth,
   validate(patchPlaylistValidation),
   async (req, res) => {
-    console.log(req.params.playlist_id)
-    await Playlist.findByIdAndUpdate(req.params.playlist_id, req.body, { new: true })
+    console.log(req.params.playlist_id);
+    await Playlist.findByIdAndUpdate(req.params.playlist_id, req.body, {
+      new: true,
+    })
       .exec()
       .then((result) => {
         result
