@@ -29,12 +29,12 @@ mongoose
     useCreateIndex: true,
     useFindAndModify: false,
   })
-  .then((result) =>
+  .then(result =>
     app.listen(port, () => {
       console.log(`Kapstone Backend listening at http://localhost:${port}`);
     })
   )
-  .catch((err) => console.log(err));
+  .catch(err => console.log(err));
 
 // Define Global Middleware
 app.use(express.json());
@@ -46,17 +46,17 @@ app.use(corsHandler);
 // Get All Users
 app.get("/users", (req, res) => {
   User.find({})
-    .then((result) => {
+    .then(result => {
       res.status(200).json(result);
     })
-    .catch((err) => console.log(err));
+    .catch(err => console.log(err));
 });
 
 // Get Specific User
 app.get("/users/:id", validate(mongoIdValidation), async (req, res) => {
   await User.findById(req.params.id)
     .exec()
-    .then((result) => {
+    .then(result => {
       result
         ? res.status(200).json(result)
         : res.status(404).json({
@@ -64,7 +64,16 @@ app.get("/users/:id", validate(mongoIdValidation), async (req, res) => {
             message: "User Does Not Exist!",
           });
     })
-    .catch((err) => console.log(err));
+    .catch(err => console.log(err));
+});
+
+//  Get a specific user by username
+
+app.get("/users/:username", (req, res) => {
+  const username = req.params.username;
+  User.find({ username: username }).then(result => {
+    res.status(200).send(result);
+  });
 });
 
 // Post a new User
@@ -87,7 +96,7 @@ app.post("/users", validate(registerValidation), async (req, res) => {
           createdAt: result.createdAt,
         });
       })
-      .catch((err) => {
+      .catch(err => {
         res.json(err.message);
       });
   } catch (err) {
@@ -160,7 +169,16 @@ app.get("/users/logout", (req, res) => {
 /////////// Playlist Routes ////////////
 // Get All Playlists
 app.get("/playlists", (req, res) => {
-  Playlist.find({}).then((result) => {
+  Playlist.find({}).then(result => {
+    res.status(200).json(result);
+  });
+});
+
+//  Get playlist by username
+
+app.get("/playlists/:username", (req, res) => {
+  const username = req.params.username;
+  Playlist.find({ username: username }).then(result => {
     res.status(200).json(result);
   });
 });
@@ -168,7 +186,7 @@ app.get("/playlists", (req, res) => {
 //Get Specified Playlist
 app.get("/playlists/:id", validate(mongoIdValidation), (req, res) => {
   Playlist.findById(req.params.id)
-    .then((result) => {
+    .then(result => {
       result
         ? res.status(200).json(result)
         : res.status(404).json({
@@ -176,7 +194,7 @@ app.get("/playlists/:id", validate(mongoIdValidation), (req, res) => {
             message: "Playlist Does Not Exist!",
           });
     })
-    .catch((err) => {
+    .catch(err => {
       res.json(err.message);
     });
 });
@@ -191,7 +209,7 @@ app.post("/playlists", checkAuth, validate(playlistValidation), (req, res) => {
   });
   playlist
     .save()
-    .then((result) => {
+    .then(result => {
       res.status(201).json({
         statusCode: res.statusCode,
         newPlaylist: result,
@@ -199,7 +217,7 @@ app.post("/playlists", checkAuth, validate(playlistValidation), (req, res) => {
         createdAt: result.createdAt,
       });
     })
-    .catch((err) => {
+    .catch(err => {
       console.log(err);
     });
 });
@@ -210,10 +228,12 @@ app.patch(
   checkAuth,
   validate(patchPlaylistValidation),
   async (req, res) => {
-    console.log(req.params.playlist_id)
-    await Playlist.findByIdAndUpdate(req.params.playlist_id, req.body, { new: true })
+    console.log(req.params.playlist_id);
+    await Playlist.findByIdAndUpdate(req.params.playlist_id, req.body, {
+      new: true,
+    })
       .exec()
-      .then((result) => {
+      .then(result => {
         result
           ? res.status(200).json({
               statusCode: res.statusCode,
@@ -225,7 +245,7 @@ app.patch(
               message: "User Does Not Exist!",
             });
       })
-      .catch((err) => {
+      .catch(err => {
         console.log(err);
       });
   }
