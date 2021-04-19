@@ -69,7 +69,7 @@ app.get("/users/:id", validate(mongoIdValidation), async (req, res) => {
 
 //  Get a specific user by username
 
-app.get("/users/:username", (req, res) => {
+app.get("/userProfile/:username", (req, res) => {
   const username = req.params.username;
   User.find({ username: username }).then(result => {
     res.status(200).send(result);
@@ -110,9 +110,45 @@ app.patch("/users", (req, res) => {
   res.status.json("Hit Update User Endpoint");
 });
 
+app.patch("/users/:id", checkAuth, async (req, res) => {
+  await User.findByIdAndUpdate(req.params.id, req.body)
+    .exec()
+    .then(result => {
+      result
+        ? res.status(200).json({
+            statusCode: res.statusCode,
+            message: "DisplayName Successfully Updated",
+            displayName: result,
+          })
+        : res.status(404).json({
+            statusCode: res.statusCode,
+            message: "User Does Not Exist!",
+          });
+    })
+    .catch(err => {
+      console.log(err);
+    });
+});
+
 //Delete User
-app.delete("/users/:id", validate(mongoIdValidation), (req, res) => {
-  res.status.json("Hit Delete users/:id Endpoint");
+app.delete("/users/:id", checkAuth, async (req, res) => {
+  const loggedInUser = await User.findByIdAndRemove(req.params.id);
+
+  if (!loggedInUser) {
+    res.status(404).json({
+      statusCode: res.statusCode,
+      message: "Must be logged in as User!",
+    });
+  }
+
+  if (loggedInUser) {
+    res.status(200).json({
+      statusCode: res.statusCode,
+      message: "User Successfully Deleted",
+      deletedUserName: loggedInUser.name,
+      deletedUserRaw: loggedInUser,
+    });
+  }
 });
 
 ////////// User Auth Routes ///////////
@@ -176,7 +212,7 @@ app.get("/playlists", (req, res) => {
 
 //  Get playlist by username
 
-app.get("/playlists/:username", (req, res) => {
+app.get("/userPlaylists/:username", (req, res) => {
   const username = req.params.username;
   Playlist.find({ username: username }).then(result => {
     res.status(200).json(result);
