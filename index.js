@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import { User } from "./models/user.js";
 import { Playlist } from "./models/playlist.js";
-import { Review } from "./models/review.js"
+import { Review } from "./models/review.js";
 import { validate, ValidationError } from "express-validation";
 import {
   playlistValidation,
@@ -11,7 +11,7 @@ import {
   loginValidation,
 } from "./customModules/expressValidation.js";
 import jwt from "jsonwebtoken";
-import { } from "dotenv/config.js";
+import {} from "dotenv/config.js";
 import { corsHandler, checkAuth } from "./customModules/customMiddleware.js";
 
 const app = express();
@@ -191,43 +191,49 @@ app.patch("/playlists/:id", (req, res) => {
 
 ////////////Review Routes////////////
 app.post("/reviews", async (req, res) => {
-  console.log(req.body)
-  const targetPlaylist = await Playlist.findById(req.body.playlist_id).exec()
+  console.log(req.body);
+  const targetPlaylist = await Playlist.findById(req.body.playlistId).exec().then((targetPlaylist) => {
+    if (!targetPlaylist) res.status(404).json("Playlist Not Found");
+    if (targetPlaylist) {
+      const review = new Review(req.body);
+      console.log(review);
+      targetPlaylist.reviews.push(review)
+    }
 
+    const updated = targetPlaylist
+    .save()
+    .then((result) => res.status(201).json({
+      statusCode: res.statusCode,
+      updatePlaylist: updated,
+      message: "Review Successfully Added!"
+    }))
+    .catch((err) => res.send(err));
+    console.log(targetPlaylist)
+  })
 
-  console.log(targetPlaylist)
-  const review = new Review({
-    playlist_id: req.body.playlist_id,
-    review_username: req.body.username,
-    description: req.body.description,
-    thumbsUp: req.body.thumbsUp,
-    thumbsDown: req.body.thumbsDown
+    
+
+  
+  
   });
-  // console.log(review)
-
-targetPlaylist.reviews.push(review)
-
-const updated = await targetPlaylist.save()
-res.status(201).json(updated) 
-
-})
 
 
 
+// .catch ((err)=>{
+//   console.log(err)
+// });
 
 // Reviews Patch
 
 app.patch("/reviews/:id", (req, res) => {
-  res.status(200).json("Hello from patch")
-})
-
-
+  res.status(200).json("Hello from patch");
+});
 
 // Reviews Delete
 
 app.delete("/reviews/:id", (req, res) => {
-  res.status(200).json("Hello from delete")
-})
+  res.status(200).json("Hello from delete");
+});
 
 //Home Route
 app.get("/", (req, res) => {
