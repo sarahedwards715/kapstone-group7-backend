@@ -96,8 +96,16 @@ app.post("/users", validate(registerValidation), async (req, res) => {
           createdAt: result.createdAt,
         });
       })
-      .catch(err => {
-        res.json(err.message);
+      .catch((err) => {
+        if (err.code === 11000) {
+          res.status(400).json({
+            message:
+              "This Username is Already Being Used!",
+            statusCode: res.statusCode,
+            databaseErrorCode: err.code,
+            raw: err,
+          });
+        }
       });
   } catch (err) {
     console.log(err);
