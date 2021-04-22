@@ -16,16 +16,14 @@ const reviewSchema = new Schema(
 
         thumbsUp: {
             type: Boolean,
-            required: true
+            
 
         },
 
-        thumbsDown: {
-            type: Boolean,
-            required: true 
-
-
-        }
+        username: {
+            type: String,
+            required: true, 
+        },
 
     },
         { timestamps: true}

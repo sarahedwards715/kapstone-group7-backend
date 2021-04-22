@@ -211,8 +211,10 @@ app.patch(
   checkAuth,
   validate(patchPlaylistValidation),
   async (req, res) => {
-    console.log(req.params.playlist_id)
-    await Playlist.findByIdAndUpdate(req.params.playlist_id, req.body, { new: true })
+    console.log(req.params.playlist_id);
+    await Playlist.findByIdAndUpdate(req.params.playlist_id, req.body, {
+      new: true,
+    })
       .exec()
       .then((result) => {
         result
@@ -254,34 +256,37 @@ app.delete("/playlists/:id", checkAuth, async (req, res) => {
 });
 
 ////////////Review Routes////////////
-app.post("/reviews", async (req, res) => {
-  console.log(req.body);
-  const targetPlaylist = await Playlist.findById(req.body.playlistId).exec().then((targetPlaylist) => {
-    if (!targetPlaylist) res.status(404).json("Playlist Not Found");
-    if (targetPlaylist) {
-      const review = new Review(req.body);
-      console.log(review);
-      targetPlaylist.reviews.push(review)
-    }
+app.get("/reviews/:playlist_id", checkAuth, async (req, res) => {
+const playlistReviews = await Playlist.findById(req.params.playlist_id)  
+res.json(playlistReviews)
+})
 
-    const updated = targetPlaylist
-    .save()
-    .then((result) => res.status(201).json({
-      statusCode: res.statusCode,
-      updatePlaylist: updated,
-      message: "Review Successfully Added!"
-    }))
+
+app.post("/reviews", checkAuth, async (req, res) => {
+  const targetPlaylist = await Playlist.findById(req.body.playlist_id)
+    .exec()
+    .then((targetPlaylist) => {
+      if (!targetPlaylist) res.status(404).json("Playlist Not Found");
+      if (targetPlaylist) {
+        const review = new Review(req.body);
+        console.log(review);
+        targetPlaylist.reviews.push(review);
+      }
+
+      const updated = targetPlaylist
+        .save()
+        .then((result) =>
+          res.status(201).json({
+            statusCode: res.statusCode,
+            updatePlaylist: updated,
+            message: "Review Successfully Added!",
+          })
+        )
+        .catch((err) => res.send(err));
+      console.log(targetPlaylist);
+    })
     .catch((err) => res.send(err));
-    console.log(targetPlaylist)
-  })
-
-    
-
-  
-  
-  });
-
-
+});
 
 // .catch ((err)=>{
 //   console.log(err)
