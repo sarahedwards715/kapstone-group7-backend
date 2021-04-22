@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import { User } from "./models/user.js";
 import { Playlist } from "./models/playlist.js";
+import { Review } from "./models/review.js";
 import { validate, ValidationError } from "express-validation";
 import {
   playlistValidation,
@@ -314,6 +315,55 @@ app.delete("/playlists/:id", checkAuth, async (req, res) => {
       deletedPlaylistRaw: targetPlaylist,
     });
   }
+});
+
+////////////Review Routes////////////
+app.get("/reviews/:playlist_id", checkAuth, async (req, res) => {
+const playlistReviews = await Playlist.findById(req.params.playlist_id)  
+res.json(playlistReviews)
+})
+
+
+app.post("/reviews", checkAuth, async (req, res) => {
+  const targetPlaylist = await Playlist.findById(req.body.playlist_id)
+    .exec()
+    .then((targetPlaylist) => {
+      if (!targetPlaylist) res.status(404).json("Playlist Not Found");
+      if (targetPlaylist) {
+        const review = new Review(req.body);
+        console.log(review);
+        targetPlaylist.reviews.push(review);
+      }
+
+      const updated = targetPlaylist
+        .save()
+        .then((result) =>
+          res.status(201).json({
+            statusCode: res.statusCode,
+            updatePlaylist: updated,
+            message: "Review Successfully Added!",
+          })
+        )
+        .catch((err) => res.send(err));
+      console.log(targetPlaylist);
+    })
+    .catch((err) => res.send(err));
+});
+
+// .catch ((err)=>{
+//   console.log(err)
+// });
+
+// Reviews Patch
+
+app.patch("/reviews/:id", (req, res) => {
+  res.status(200).json("Hello from patch");
+});
+
+// Reviews Delete
+
+app.delete("/reviews/:id", (req, res) => {
+  res.status(200).json("Hello from delete");
 });
 
 //Home Route
